@@ -3,6 +3,8 @@
 A small Android TV app for viewing Hikvision DVR/NVR cameras as a fullscreen grid.
 Configure once, then live-monitor your cameras straight from the TV.
 
+[![Build](https://github.com/sariamubeen/hik-tv-viewer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/sariamubeen/hik-tv-viewer/actions/workflows/build.yml)
+[![Latest build](https://img.shields.io/github/v/release/sariamubeen/hik-tv-viewer?include_prereleases&label=latest%20build)](https://github.com/sariamubeen/hik-tv-viewer/releases/tag/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Android API](https://img.shields.io/badge/API-24%2B-brightgreen.svg)](https://developer.android.com/about/versions/nougat)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-blue.svg)](https://kotlinlang.org/)
@@ -36,9 +38,14 @@ The result reads as smooth surveillance video on a TV-sized screen, and works on
 
 ## Installation
 
+There are two release flavors:
+
+- **[Latest build](https://github.com/sariamubeen/hik-tv-viewer/releases/tag/latest)** — auto-built from `main` on every push. Always the freshest, may have rough edges.
+- **[Tagged releases](https://github.com/sariamubeen/hik-tv-viewer/releases?q=v)** — stable, versioned (`v0.1.0` etc.).
+
 ### Option 1 — Sideload via USB drive (no ADB required)
 
-1. Download the latest `app-debug.apk` from the [Releases](https://github.com/sariamubeen/hik-tv-viewer/releases) page
+1. Download `HikTvViewer-latest.apk` from the [Latest build](https://github.com/sariamubeen/hik-tv-viewer/releases/tag/latest) (or pick a tagged version)
 2. Copy it to a FAT32 / exFAT USB stick (root folder)
 3. On your Android TV: install a file manager from the Play Store (e.g. **File Commander**)
 4. Enable **Install unknown apps** for the file manager:
