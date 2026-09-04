@@ -1,0 +1,70 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Run unit tests
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      # Rolling "latest" release: every push to main updates the same
+      # pre-release, matching what the README's "Latest build" link expects.
+      # Renamed to match the exact filename the README's install steps name.
+      - name: Rename APK for the latest release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: cp app/build/outputs/apk/debug/app-debug.apk HikTvViewer-latest.apk
+
+      - name: Publish rolling latest release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build
+          prerelease: true
+          body: |
+            Automatically built from the latest commit on `main`
+            (${{ github.sha }}). Always the freshest code, may have rough
+            edges. For a stable, versioned build see the tagged releases.
+          files: HikTvViewer-latest.apk
+
+      # Tagged release: pushing a v* tag (e.g. v0.4.0) publishes a proper
+      # versioned release with the same debug-signed APK the project has
+      # always shipped (no release signing config exists yet).
+      - name: Publish tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: app/build/outputs/apk/debug/app-debug.apk
