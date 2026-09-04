@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<DeviceInfo version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<deviceName>Embedded Net DVR</deviceName>
+<deviceID>00000000-0000-0000-0000-000000000000</deviceID>
+<model>DS-7108HGHI-M1</model>
+<serialNumber>DS-7108HGHI-M1REDACTEDSERIALNUMBER</serialNumber>
+<macAddress>00:00:00:00:00:00</macAddress>
+<firmwareVersion>V4.83.614</firmwareVersion>
+<firmwareReleasedDate>build 251210</firmwareReleasedDate>
+<encoderVersion>V5.0</encoderVersion>
+<encoderReleasedDate>build 251210</encoderReleasedDate>
+<deviceType>DVR</deviceType>
+<telecontrolID>255</telecontrolID>
+<hardwareVersion>0x809810</hardwareVersion>
+<manufacturer>hikvision</manufacturer>
+</DeviceInfo>
