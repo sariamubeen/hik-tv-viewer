@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-04
+
 ### Added
 - Network discovery: SADP multicast + a credential-free subnet sweep, alongside manual IP entry.
 - Real channel enumeration via ISAPI - actual names, codec, online state, and audio capability, replacing the hardcoded channel list.
