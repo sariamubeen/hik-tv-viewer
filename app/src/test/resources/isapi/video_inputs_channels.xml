@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<VideoInputChannelList version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<VideoInputChannel version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<id>1</id>
+<inputPort>1</inputPort>
+<videoInputEnabled>true</videoInputEnabled>
+<name>Camera 01</name>
+<videoFormat>PAL</videoFormat>
+<resDesc>960*1080(HD1080PLite)P25</resDesc>
+</VideoInputChannel>
+<VideoInputChannel version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<id>2</id>
+<inputPort>2</inputPort>
+<videoInputEnabled>true</videoInputEnabled>
+<name>1</name>
+<videoFormat>PAL</videoFormat>
+<resDesc>960*1080(HD1080PLite)P25</resDesc>
+</VideoInputChannel>
+<VideoInputChannel version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<id>3</id>
+<inputPort>3</inputPort>
+<videoInputEnabled>true</videoInputEnabled>
+<name>Camera 03</name>
+<videoFormat>PAL</videoFormat>
+<resDesc>960*1080(HD1080PLite)P25</resDesc>
+</VideoInputChannel>
+<VideoInputChannel version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<id>4</id>
+<inputPort>4</inputPort>
+<videoInputEnabled>true</videoInputEnabled>
+<name>Camera 04</name>
+<videoFormat>PAL</videoFormat>
+<resDesc>960*1080(HD1080PLite)P25</resDesc>
+</VideoInputChannel>
+<VideoInputChannel version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<id>5</id>
+<inputPort>5</inputPort>
+<videoInputEnabled>true</videoInputEnabled>
+<name>Camera 05</name>
+<videoFormat>PAL</videoFormat>
+<resDesc>960*1080(HD1080PLite)P25</resDesc>
+</VideoInputChannel>
+<VideoInputChannel version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<id>6</id>
+<inputPort>6</inputPort>
+<videoInputEnabled>true</videoInputEnabled>
+<name>Camera 06</name>
+<videoFormat>PAL</videoFormat>
+<resDesc>NO VIDEO</resDesc>
+</VideoInputChannel>
+<VideoInputChannel version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<id>7</id>
+<inputPort>7</inputPort>
+<videoInputEnabled>true</videoInputEnabled>
+<name>Camera 07</name>
+<videoFormat>PAL</videoFormat>
+<resDesc>960*1080(HD1080PLite)P25</resDesc>
+</VideoInputChannel>
+<VideoInputChannel version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<id>8</id>
+<inputPort>8</inputPort>
+<videoInputEnabled>true</videoInputEnabled>
+<name>Camera 08</name>
+<videoFormat>PAL</videoFormat>
+<resDesc>NO VIDEO</resDesc>
+</VideoInputChannel>
+</VideoInputChannelList>

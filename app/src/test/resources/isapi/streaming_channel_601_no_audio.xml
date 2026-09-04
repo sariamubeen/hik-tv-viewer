@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<StreamingChannel version="1.0" xmlns="http://www.hikvision.com/ver20/XMLSchema">
+<id>601</id>
+<channelName>601</channelName>
+<enabled>true</enabled>
+<Transport>
+<ControlProtocolList>
+<ControlProtocol>
+<streamingTransport>RTSP</streamingTransport>
+</ControlProtocol>
+</ControlProtocolList>
+</Transport>
+<Video>
+<enabled>true</enabled>
+<videoInputChannelID>6</videoInputChannelID>
+<videoCodecType>H.265</videoCodecType>
+<videoScanType>progressive</videoScanType>
+<videoResolutionWidth>1280</videoResolutionWidth>
+<videoResolutionHeight>720</videoResolutionHeight>
+<videoQualityControlType>VBR</videoQualityControlType>
+<fixedQuality>60</fixedQuality>
+<vbrUpperCap>1024</vbrUpperCap>
+<vbrLowerCap>32</vbrLowerCap>
+<maxFrameRate>1500</maxFrameRate>
+<snapShotImageType>JPEG</snapShotImageType>
+<GovLength>25</GovLength>
+<SmartCodec>
+<enabled>false</enabled>
+</SmartCodec>
+<vbrAverageCap>832</vbrAverageCap>
+</Video>
+<Audio>
+<enabled>false</enabled>
+<audioInputChannelID>6</audioInputChannelID>
+<audioCompressionType>G.711ulaw</audioCompressionType>
+</Audio>
+</StreamingChannel>

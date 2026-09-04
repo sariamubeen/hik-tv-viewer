@@ -1,5 +1,6 @@
 package com.hiktv.viewer.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,39 +33,46 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Button
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.hiktv.viewer.data.Channel
+import com.hiktv.viewer.data.Device
+import com.hiktv.viewer.data.DiscoveredDevice
 import com.hiktv.viewer.data.HikClient
-import com.hiktv.viewer.data.Settings
+import com.hiktv.viewer.data.Isapi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Credentials entry: host/port/https/user/pass, pre-filled from a scan result
+ * when [prefill] is not null. Connect verifies the device, enumerates its real
+ * channels via ISAPI (no more hardcoded channel list), and hands both back.
+ */
 @Composable
-fun SetupScreen(
-    initial: Settings,
-    onSaved: (Settings) -> Unit,
+fun CredentialsScreen(
+    prefill: DiscoveredDevice?,
+    onConnected: (Device, List<Channel>) -> Unit,
+    onBack: () -> Unit,
 ) {
-    var host by remember { mutableStateOf(initial.host) }
-    var port by remember { mutableStateOf(initial.port.toString()) }
-    var user by remember { mutableStateOf(initial.username) }
-    var pass by remember { mutableStateOf(initial.password) }
-    var channels by remember {
-        mutableStateOf(initial.channels.joinToString(",").ifBlank { "1,2,3,4" })
-    }
-    var useHttps by remember { mutableStateOf(initial.useHttps) }
+    var host by remember { mutableStateOf(prefill?.host ?: "") }
+    var port by remember { mutableStateOf((prefill?.httpPort ?: 80).toString()) }
+    var user by remember { mutableStateOf("") }
+    var pass by remember { mutableStateOf("") }
+    var useHttps by remember { mutableStateOf(false) }
 
     var status by remember { mutableStateOf("") }
     var statusIsError by remember { mutableStateOf(false) }
-    var testing by remember { mutableStateOf(false) }
+    var connecting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    fun build(): Settings = Settings(
+    BackHandler(onBack = onBack)
+
+    fun build(): Device = Device(
+        id = "$host:${port.toIntOrNull() ?: 80}",
         host = host.trim(),
         port = port.toIntOrNull() ?: 80,
-        rtspPort = 554,
         username = user,
         password = pass,
         useHttps = useHttps,
-        channels = channels.split(",").mapNotNull { it.trim().toIntOrNull() },
     )
 
     Box(
@@ -81,12 +89,12 @@ fun SetupScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "Hik TV Viewer",
+                text = "Connect to your DVR / NVR",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Text(
-                text = "Enter your Hikvision DVR / NVR connection details. Stored encrypted on this device.",
+                text = "Credentials are stored encrypted on this device and entered once.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
@@ -133,62 +141,50 @@ fun SetupScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            FieldLabel("Channels (comma-separated, e.g. 1,2,3,4)")
-            OutlinedTextField(
-                value = channels,
-                onValueChange = { channels = it },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
             Spacer(Modifier.height(8.dp))
 
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    onClick = {
-                        if (testing) return@Button
-                        val s = build()
-                        if (!s.isConfigured) {
-                            status = "Fill in host, username, and password."
-                            statusIsError = true
-                            return@Button
-                        }
-                        testing = true
-                        status = "Testing…"
-                        statusIsError = false
-                        scope.launch {
-                            val result = runCatching {
-                                withContext(Dispatchers.IO) { HikClient.fetchDeviceInfo(s) }
+            Button(
+                onClick = {
+                    if (connecting) return@Button
+                    val device = build()
+                    if (!device.isConfigured) {
+                        status = "Fill in host, username, and password."
+                        statusIsError = true
+                        return@Button
+                    }
+                    connecting = true
+                    status = "Connecting..."
+                    statusIsError = false
+                    scope.launch {
+                        val result = runCatching {
+                            withContext(Dispatchers.IO) {
+                                val infoBody = HikClient.fetchDeviceInfo(device)
+                                val model = Regex("<model>(.*?)</model>")
+                                    .find(infoBody)?.groupValues?.get(1) ?: ""
+                                val client = HikClient.newOkHttp(device)
+                                val channels = Isapi.enumerateChannels(device, client)
+                                device.copy(model = model) to channels
                             }
-                            testing = false
-                            result.fold(
-                                onSuccess = { body ->
-                                    val model = Regex("<model>(.*?)</model>")
-                                        .find(body)?.groupValues?.get(1) ?: "device"
-                                    status = "Connected to $model"
-                                    statusIsError = false
-                                },
-                                onFailure = {
-                                    status = "Failed: ${it.message}"
+                        }
+                        connecting = false
+                        result.fold(
+                            onSuccess = { (connectedDevice, channels) ->
+                                if (channels.isEmpty()) {
+                                    status = "Connected, but found no channels on this device."
                                     statusIsError = true
-                                },
-                            )
-                        }
-                    },
-                ) { Text(if (testing) "Testing…" else "Test connection") }
-
-                Button(
-                    onClick = {
-                        val s = build()
-                        if (!s.isConfigured) {
-                            status = "Fill in host, username, and password."
-                            statusIsError = true
-                        } else {
-                            onSaved(s)
-                        }
-                    },
-                ) { Text("Save & continue") }
-            }
+                                } else {
+                                    onConnected(connectedDevice, channels)
+                                }
+                            },
+                            onFailure = {
+                                status = "Failed: ${it.message}"
+                                statusIsError = true
+                            },
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(if (connecting) "Connecting..." else "Connect") }
 
             if (status.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))

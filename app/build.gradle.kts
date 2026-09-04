@@ -13,6 +13,12 @@ android {
         targetSdk = 34
         versionCode = 3
         versionName = "0.3.0"
+
+        ndk {
+            // libvlc-all ships arm64-v8a/armeabi-v7a/x86/x86_64; TV hardware only
+            // needs the ARM ABIs, so drop the other two rather than double the APK.
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     buildTypes {
@@ -59,11 +65,20 @@ android {
                 "/META-INF/NOTICE.txt"
             )
         }
+        jniLibs {
+            // Compressed .so storage: smaller APK to sideload from a USB stick,
+            // at the cost of extraction at install time rather than mmap-from-APK.
+            useLegacyPackaging = true
+        }
     }
 
     sourceSets {
         getByName("main") {
             java.srcDirs("src/main/kotlin")
+        }
+        getByName("test") {
+            java.srcDirs("src/test/kotlin")
+            resources.srcDirs("src/test/resources")
         }
     }
 }
@@ -76,6 +91,12 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+
+    // Coroutines - previously only resolved transitively, now pinned explicitly
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    // Compose-stable immutable collections, for Device/Channel lists
+    implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.7")
 
     // Compose
     implementation("androidx.compose.ui:ui")
@@ -99,7 +120,22 @@ dependencies {
     // Encrypted storage
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
+    // Device list persisted in EncryptedSharedPreferences as JSON via the
+    // platform's built-in org.json (android.jar) - no dependency needed.
+
+    // XML parsing for ISAPI/SADP responses. A real, portable implementation
+    // rather than android.util.Xml - that ties Isapi.kt's parsing to the
+    // Android framework stub, which throws (by design) in plain JVM unit
+    // tests instead of parsing, since it's unmocked there.
+    implementation("net.sf.kxml:kxml2:2.3.0")
+
+    // Video + audio playback. Pinned to 3.7.2: 3.7.3+ depends on kotlin-stdlib
+    // 2.2.10, which conflicts with this project's Kotlin 1.9.22 plugin version.
+    implementation("org.videolan.android:libvlc-all:3.7.2")
+
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    testImplementation("junit:junit:4.13.2")
 }

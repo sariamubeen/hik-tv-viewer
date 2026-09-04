@@ -13,28 +13,26 @@ Configure once, then live-monitor your cameras straight from the TV.
 
 A no-frills TV client for Hikvision DVR/NVR systems. There's no Hikvision-published Android TV app, and the Android-phone iVMS clients aren't TV-friendly. This fills that gap.
 
-Up to a 3x2 fullscreen grid of cameras, with one-tap entry into a higher-resolution single-camera view. D-pad-driven, edge-to-edge, fast.
+Scan the network or type an IP, sign in once, pick which cameras to show, and get a scrolling grid of live video with one-tap entry into a full-resolution single-camera view with audio. D-pad-driven, edge-to-edge, fast.
 
-## Why snapshots and not RTSP?
+## Video engine: libVLC, not ExoPlayer
 
-The honest answer: most modern Hikvision firmwares default to **H.265 (HEVC)** for channel encoding, and Android's RTSP stack (both ExoPlayer's RTSP module and libVLC) handles Hikvision's H.265-over-RTP packetization unreliably. The connection succeeds, then either fails to decode or shows a black frame indefinitely.
+Most modern Hikvision firmwares default to **H.265 (HEVC)** for channel encoding. An earlier version of this app used ISAPI snapshot polling instead of real RTSP, because early testing found Android's RTSP stacks unreliable against Hikvision streams.
 
-So this app uses Hikvision's ISAPI snapshot endpoint (`/ISAPI/Streaming/channels/{ch}01/picture`) with HTTP digest auth and polls it on a tight loop:
-- **5 fps per tile** in the grid (six tiles ≈ 30 req/s on the DVR)
-- **10 fps** in single-camera fullscreen
-- Each new frame is decoded before the previous one is dropped, so there's no flash between frames
+Digging deeper: Media3/ExoPlayer's RTSP module has a real, still-open gap for exactly this case ([androidx/media#901](https://github.com/androidx/media/issues/901) - it requires an `fmtp` attribute with `sprop-vps`/`sprop-sps`/`sprop-pps` for H.265 that some Hikvision firmware doesn't send). libVLC's failure reports, on inspection, trace mostly to Hikvision's proprietary "H.265+" smart-codec variant interacting with FFmpeg's low-framerate frame threading, and to insufficient RTSP network-caching for H.265's burstier GOP delivery - both tunable, not a structural parsing failure.
 
-The result reads as smooth surveillance video on a TV-sized screen, and works on every Hikvision device that supports the ISAPI snapshot endpoint — which is essentially all of them since 2018.
+So this app now plays real RTSP video via **libVLC**, forced to RTSP-over-TCP, with per-channel option tuning driven by whether that channel's `SmartCodec` flag is set. Video decode concurrency is queried from the TV's own `MediaCodecInfo` at startup rather than assumed, so the grid uses live video up to whatever the hardware can actually decode and falls back to snapshot polling (still available, now frame-paced and lifecycle-aware) beyond that.
 
 ## Features
 
-- First-run setup screen with **Test Connection** button
-- Credentials stored encrypted via `EncryptedSharedPreferences`
-- 3x2 fullscreen grid, no gaps, edge-to-edge tiles
-- D-pad navigation: arrows to move, **OK** to expand a tile, **Back** to return, **Menu** to re-open settings
+- **Network scan** (SADP multicast + a credential-free subnet sweep) or manual IP entry
+- Enumerates the DVR/NVR's **real channels** - actual names, codec, and online state - instead of a hardcoded list
+- Scrolling grid sized to however many cameras you have, not a fixed 3x2
+- Live video with audio in the single-camera view; muted live video in the grid up to the TV's real decoder budget
+- Credentials stored encrypted via `EncryptedSharedPreferences`, entered once - **Sign out** from the device settings screen is the only way back to the login flow
+- D-pad navigation: arrows to move, **OK** to expand a tile (or mute/unmute in the single view), **Back** returns to the grid and remembers which camera you were on, **Menu** opens device settings
 - Catppuccin Mocha theme
-- Registers as a Leanback launcher app — appears on the Android TV apps row
-- ~17 MB APK, no external services, runs entirely on your LAN
+- Registers as a Leanback launcher app - appears on the Android TV apps row
 
 ## Installation
 
@@ -65,17 +63,14 @@ adb -s TV_IP:5555 install -r app-debug.apk
 
 ## First-run configuration
 
-On launch the setup screen asks for:
+On launch: **scan** the network (or choose **Enter IP address manually**), pick your DVR/NVR from the results, then enter:
 
-- **Host** — your DVR/NVR's IP or domain
-- **HTTP port** — usually `80` (or whatever the DVR's web UI runs on)
-- **HTTPS** — toggle if your DVR uses HTTPS
-- **Username / Password** — any account with snapshot permission (a low-privilege "viewer" user is fine)
-- **Channels** — comma-separated channel numbers (e.g. `1,2,3,4`)
+- **Host / HTTP port / HTTPS** - pre-filled from the scan if you picked a device
+- **Username / Password** - any account with streaming permission (a low-privilege "viewer" user is fine)
 
-Hit **Test connection** to verify (it pings `/ISAPI/System/deviceInfo`), then **Save & continue**.
+Hit **Connect** - this verifies the device and enumerates its real channels, then shows a checklist of the actual cameras it found (real names, not guessed numbers) to choose which ones appear in your grid.
 
-To change settings later: from the grid, press **Menu** on your remote.
+To change devices or channels later, or sign out: from the grid, press **Menu** on your remote.
 
 ## Building from source
 
@@ -98,16 +93,23 @@ The APK lands in `app/build/outputs/apk/debug/app-debug.apk`.
 app/src/main/kotlin/com/hiktv/viewer/
   MainActivity.kt              # entry point
   ui/
-    App.kt                     # screen router (Setup → Grid → Live)
-    SetupScreen.kt             # first-run wizard with test-connection
-    GridScreen.kt              # 3x2 fullscreen grid
-    LiveScreen.kt              # single-camera fullscreen with prev/next
-    SnapshotPoller.kt          # the smooth-handoff frame poller
+    App.kt                     # screen router
+    DevicePickerScreen.kt      # scan results + manual entry
+    CredentialsScreen.kt       # host/port/user/pass, connect + enumerate
+    ChannelPickerScreen.kt     # checklist of the DVR's real channels
+    DeviceSettingsScreen.kt    # edit channels, add device, sign out
+    GridScreen.kt              # scrolling grid, video/snapshot per decoder budget
+    LiveScreen.kt              # single-camera fullscreen, video + audio
+    VlcPlayer.kt               # libVLC Compose wrapper
+    SnapshotPoller.kt          # frame-paced fallback poller
     theme/Theme.kt             # Catppuccin Mocha colors
   data/
-    Settings.kt                # config + URL builders
-    SecureStore.kt             # EncryptedSharedPreferences wrapper
-    HikClient.kt               # OkHttp + digest auth
+    Device.kt                  # Device + Channel models, URL builders
+    SecureStore.kt              # EncryptedSharedPreferences wrapper + migration
+    HikClient.kt                # OkHttp + digest auth
+    Isapi.kt                    # channel enumeration + XML parsing
+    Discovery.kt                 # SADP multicast + subnet sweep
+    DecoderCapabilities.kt       # queries the TV's real decode concurrency
 ```
 
 ## Compatibility
